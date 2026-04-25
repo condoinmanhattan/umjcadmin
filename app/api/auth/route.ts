@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 
-function generateToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+async function hmacSha256(secret: string, message: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const msgData = encoder.encode(message);
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign('HMAC', key, msgData);
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 // POST: login
@@ -22,7 +36,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (id === adminId && password === adminPw) {
-      const token = generateToken();
+      const secret = process.env.AUTH_SECRET || 'default-secret';
+      const token = await hmacSha256(secret, 'admin_login_success');
+      
       const response = NextResponse.json({ success: true });
 
       // Set HTTP-only cookie valid for 7 days
@@ -32,17 +48,6 @@ export async function POST(request: NextRequest) {
         sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days
-      });
-
-      // Store the token hash for validation
-      const secret = process.env.AUTH_SECRET || 'default-secret';
-      const hash = crypto.createHmac('sha256', secret).update(token).digest('hex');
-      response.cookies.set('auth_hash', hash, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7,
       });
 
       return response;
@@ -64,23 +69,21 @@ export async function POST(request: NextRequest) {
 export async function DELETE() {
   const response = NextResponse.json({ success: true });
   response.cookies.set('auth_token', '', { path: '/', maxAge: 0 });
-  response.cookies.set('auth_hash', '', { path: '/', maxAge: 0 });
   return response;
 }
 
 // GET: check auth status
 export async function GET(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
-  const hash = request.cookies.get('auth_hash')?.value;
 
-  if (!token || !hash) {
+  if (!token) {
     return NextResponse.json({ authenticated: false });
   }
 
   const secret = process.env.AUTH_SECRET || 'default-secret';
-  const expectedHash = crypto.createHmac('sha256', secret).update(token).digest('hex');
+  const expectedToken = await hmacSha256(secret, 'admin_login_success');
 
-  if (hash === expectedHash) {
+  if (token === expectedToken) {
     return NextResponse.json({ authenticated: true });
   }
 

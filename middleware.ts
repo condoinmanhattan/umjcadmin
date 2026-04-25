@@ -32,22 +32,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check auth cookies
+  // Check auth cookie
   const token = request.cookies.get('auth_token')?.value;
-  const hash = request.cookies.get('auth_hash')?.value;
 
-  if (!token || !hash) {
+  if (!token) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
   const secret = process.env.AUTH_SECRET || 'default-secret';
-  const expectedHash = await hmacSha256(secret, token);
+  const expectedToken = await hmacSha256(secret, 'admin_login_success');
 
-  if (hash !== expectedHash) {
+  if (token !== expectedToken) {
     // Invalid token - clear cookies and redirect
     const response = NextResponse.redirect(new URL('/login', request.url));
     response.cookies.set('auth_token', '', { path: '/', maxAge: 0 });
-    response.cookies.set('auth_hash', '', { path: '/', maxAge: 0 });
     return response;
   }
 
