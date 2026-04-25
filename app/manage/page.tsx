@@ -80,6 +80,7 @@ export default function ManagePage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editData, setEditData] = useState<Record<string, unknown>>({});
   const [saving, setSaving] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ type: string; id?: string; count?: number } | null>(null);
   const { showToast } = useToast();
 
   const fetchCustomers = useCallback(async () => {
@@ -88,6 +89,7 @@ export default function ManagePage() {
       const params = new URLSearchParams();
       if (activeStatus !== "전체") params.set("status", activeStatus);
       if (search) params.set("search", search);
+      params.set("_t", Date.now().toString());
 
       const res = await fetch(`/api/customers?${params}`);
       const result = await res.json();
@@ -120,10 +122,7 @@ export default function ManagePage() {
     setSelectedIds(newSet);
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
-    if (!confirm(`${selectedIds.size}건을 삭제하시겠습니까?`)) return;
-
+  const executeBulkDelete = async () => {
     try {
       const res = await fetch("/api/customers/bulk", {
         method: "POST",
@@ -141,6 +140,11 @@ export default function ManagePage() {
     } catch (err) {
       showToast(String(err), "error");
     }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return;
+    setConfirmAction({ type: "bulkDelete", count: selectedIds.size });
   };
 
   const handleBulkComplete = async () => {
@@ -248,21 +252,39 @@ export default function ManagePage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedCustomer) return;
-    if (!confirm("이 고객을 삭제하시겠습니까?")) return;
+  const handleDeleteSingle = async (id: string) => {
     try {
-      const res = await fetch(`/api/customers/${selectedCustomer.id}`, {
+      const res = await fetch(`/api/customers/${id}`, {
         method: "DELETE",
       });
       if (res.ok) {
         showToast("고객이 삭제되었습니다.", "success");
-        setSelectedCustomer(null);
+        if (selectedCustomer?.id === id) setSelectedCustomer(null);
         fetchCustomers();
       }
     } catch (err) {
       showToast(String(err), "error");
     }
+  };
+
+  const handleDelete = () => {
+    if (!selectedCustomer) return;
+    setConfirmAction({ type: "singleDelete", id: selectedCustomer.id });
+  };
+
+  const handleRowDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setConfirmAction({ type: "singleDelete", id });
+  };
+
+  const executeConfirmAction = () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === "bulkDelete") {
+      executeBulkDelete();
+    } else if (confirmAction.type === "singleDelete" && confirmAction.id) {
+      handleDeleteSingle(confirmAction.id);
+    }
+    setConfirmAction(null);
   };
 
   const handleCopy = async () => {
@@ -356,12 +378,13 @@ export default function ManagePage() {
               <th>휴대폰</th>
               <th>모델코드</th>
               <th>진행상태</th>
+              <th style={{ width: 120 }}>액션</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <div className="loading-overlay">
                     <div className="spinner spinner-lg" />
                     <span>불러오는 중...</span>
@@ -370,7 +393,7 @@ export default function ManagePage() {
               </tr>
             ) : customers.length === 0 ? (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <div className="empty-state">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -402,12 +425,38 @@ export default function ManagePage() {
                       {c.status}
                     </span>
                   </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => openDetail(c)}>수정</button>
+                      <button className="btn btn-danger btn-sm" onClick={(e) => handleRowDelete(e, c.id)}>삭제</button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Custom Confirm Modal */}
+      {confirmAction && (
+        <>
+          <div className="panel-overlay" onClick={() => setConfirmAction(null)} />
+          <div className="confirm-modal">
+            <div className="confirm-modal-icon">⚠️</div>
+            <p className="confirm-modal-text">
+              {confirmAction.type === "bulkDelete"
+                ? `선택한 ${confirmAction.count}건을 삭제하시겠습니까?`
+                : "이 고객을 삭제하시겠습니까?"}
+            </p>
+            <p className="confirm-modal-subtext">삭제된 데이터는 복구할 수 없습니다.</p>
+            <div className="confirm-modal-actions">
+              <button className="btn btn-secondary" onClick={() => setConfirmAction(null)}>취소</button>
+              <button className="btn btn-danger" onClick={executeConfirmAction}>삭제</button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Detail Slide Panel */}
       {selectedCustomer && (
