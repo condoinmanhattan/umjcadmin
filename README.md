@@ -75,7 +75,8 @@ npm run dev
 ```bash
 npm ci && npm run build
 ```
-Netlify에 배포 시 환경변수(`DATABASE_URL`, `GEMINI_API_KEY`)를 Netlify 대시보드에서 설정해주세요.
+Netlify에 배포 시 환경변수(`DATABASE_URL`, `GEMINI_API_KEY`)를 Netlify 대시보드에서 설정해야 합니다.
+`ADMIN_ID`, `ADMIN_PW`, `AUTH_SECRET`는 `netlify.toml`의 `[build.environment]`에 설정되어 자동 반영됩니다. (보안상 주의 필요)
 
 ## DB 스키마
 

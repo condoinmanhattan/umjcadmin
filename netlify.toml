@@ -5,5 +5,7 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[functions."auto-status-update"]
-  schedule = "0 8 * * *"
+[build.environment]
+  ADMIN_ID = "umjc25"
+  ADMIN_PW = "kl33550!"
+  AUTH_SECRET = "umjc-rental-2026"
