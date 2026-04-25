@@ -26,6 +26,7 @@ const emptyForm = {
   serviceType: "",
   monthlyFee: "",
   promotion: [] as string[],
+  customPromotion: "",
   desiredInstallDate: "",
   memo: "",
 };
@@ -126,13 +127,18 @@ export default function RegisterPage() {
     setIsSavingManual(true);
 
     try {
+      const allPromo = [...manualForm.promotion];
+      if (manualForm.customPromotion.trim()) {
+        allPromo.push(manualForm.customPromotion.trim());
+      }
+      const { customPromotion: _cp, ...formWithoutCustom } = manualForm;
+      void _cp;
       const payload = {
-        ...manualForm,
+        ...formWithoutCustom,
         monthlyFee: manualForm.monthlyFee
           ? Number(parseCurrency(manualForm.monthlyFee))
           : null,
-        promotion:
-          manualForm.promotion.length > 0 ? manualForm.promotion : null,
+        promotion: allPromo.length > 0 ? allPromo : null,
       };
 
       const res = await fetch("/api/customers", {
@@ -370,7 +376,7 @@ export default function RegisterPage() {
 
           <div className="detail-item full-width">
             <label className="input-label">프로모션</label>
-            <div className="toggle-group">
+            <div className="toggle-group" style={{ alignItems: "center" }}>
               {["반값할인", "타사보상", "결합할인"].map((promo) => (
                 <button
                   key={promo}
@@ -380,6 +386,13 @@ export default function RegisterPage() {
                   {promo}
                 </button>
               ))}
+              <input
+                className="input-field"
+                style={{ flex: 1, minWidth: 120, margin: 0 }}
+                placeholder="추가 프로모션 입력"
+                value={manualForm.customPromotion}
+                onChange={(e) => handleManualChange("customPromotion", e.target.value)}
+              />
             </div>
           </div>
 

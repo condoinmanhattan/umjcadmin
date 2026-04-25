@@ -173,6 +173,10 @@ export default function ManagePage() {
   };
 
   const openDetail = (customer: Customer) => {
+    const standardPromos = ["반값할인", "타사보상", "결합할인"];
+    const promos = customer.promotion || [];
+    const standardSelected = promos.filter((p) => standardPromos.includes(p));
+    const customSelected = promos.filter((p) => !standardPromos.includes(p)).join(", ");
     setSelectedCustomer(customer);
     setEditData({
       brand: customer.brand || "",
@@ -186,7 +190,8 @@ export default function ManagePage() {
       contractPeriod: customer.contract_period || "",
       serviceType: customer.service_type || "",
       monthlyFee: customer.monthly_fee != null ? formatCurrency(customer.monthly_fee) : "",
-      promotion: customer.promotion || [],
+      promotion: standardSelected,
+      customPromotion: customSelected,
       desiredInstallDate: customer.desired_install_date || "",
       scheduledInstallDate: customer.scheduled_install_date || "",
       status: customer.status,
@@ -228,9 +233,17 @@ export default function ManagePage() {
     if (!selectedCustomer) return;
     setSaving(true);
     try {
+      const allPromo = [...(editData.promotion as string[])];
+      const customPromo = (editData.customPromotion as string || "").trim();
+      if (customPromo) {
+        allPromo.push(customPromo);
+      }
+      const { customPromotion: _cp, ...dataWithoutCustom } = editData;
+      void _cp;
       const payload = {
-        ...editData,
+        ...dataWithoutCustom,
         monthlyFee: editData.monthlyFee ? parseCurrency(String(editData.monthlyFee)) : "",
+        promotion: allPromo,
       };
       const res = await fetch(`/api/customers/${selectedCustomer.id}`, {
         method: "PATCH",
@@ -302,7 +315,7 @@ export default function ManagePage() {
       contract_period: (editData.contractPeriod as string) || selectedCustomer.contract_period,
       service_type: (editData.serviceType as string) || selectedCustomer.service_type,
       monthly_fee: editData.monthlyFee ? Number(editData.monthlyFee) : selectedCustomer.monthly_fee,
-      promotion: (editData.promotion as string[]) || selectedCustomer.promotion,
+      promotion: [...((editData.promotion as string[]) || []), ...((editData.customPromotion as string || "").trim() ? [(editData.customPromotion as string).trim()] : [])],
       desired_install_date: (editData.desiredInstallDate as string) || selectedCustomer.desired_install_date,
       memo: (editData.memo as string) || selectedCustomer.memo,
     };
@@ -546,7 +559,7 @@ export default function ManagePage() {
 
                 <div className="detail-item full-width">
                   <label className="input-label">프로모션</label>
-                  <div className="toggle-group">
+                  <div className="toggle-group" style={{ alignItems: "center" }}>
                     {["반값할인", "타사보상", "결합할인"].map((promo) => (
                       <button
                         key={promo}
@@ -556,6 +569,13 @@ export default function ManagePage() {
                         {promo}
                       </button>
                     ))}
+                    <input
+                      className="input-field"
+                      style={{ flex: 1, minWidth: 120, margin: 0 }}
+                      placeholder="추가 프로모션 입력"
+                      value={(editData.customPromotion as string) || ""}
+                      onChange={(e) => handleEditChange("customPromotion", e.target.value)}
+                    />
                   </div>
                 </div>
 
@@ -601,7 +621,7 @@ export default function ManagePage() {
                     contract_period: (editData.contractPeriod as string) || selectedCustomer.contract_period,
                     service_type: (editData.serviceType as string) || selectedCustomer.service_type,
                     monthly_fee: editData.monthlyFee ? Number(editData.monthlyFee) : selectedCustomer.monthly_fee,
-                    promotion: (editData.promotion as string[]) || selectedCustomer.promotion,
+                    promotion: [...((editData.promotion as string[]) || []), ...((editData.customPromotion as string || "").trim() ? [(editData.customPromotion as string).trim()] : [])],
                     desired_install_date: (editData.desiredInstallDate as string) || selectedCustomer.desired_install_date,
                     memo: (editData.memo as string) || selectedCustomer.memo,
                   })}
