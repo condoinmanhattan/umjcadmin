@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  const secret = process.env.AUTH_SECRET || 'default-secret';
+  const secret = 'umjc-rental-2026';
   const expectedToken = await hmacSha256(secret, 'admin_login_success');
 
   if (token !== expectedToken) {

@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { id, password } = body;
 
-    const adminId = process.env.ADMIN_ID;
-    const adminPw = process.env.ADMIN_PW;
+    const adminId = 'umjc25';
+    const adminPw = 'kl33550!';
 
     if (!adminId || !adminPw) {
       return NextResponse.json(
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (id === adminId && password === adminPw) {
-      const secret = process.env.AUTH_SECRET || 'default-secret';
+      const secret = 'umjc-rental-2026';
       const token = await hmacSha256(secret, 'admin_login_success');
       
       const response = NextResponse.json({ success: true });
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ authenticated: false });
   }
 
-  const secret = process.env.AUTH_SECRET || 'default-secret';
+  const secret = 'umjc-rental-2026';
   const expectedToken = await hmacSha256(secret, 'admin_login_success');
 
   if (token === expectedToken) {
