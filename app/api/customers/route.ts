@@ -10,7 +10,7 @@ function generateOrderId(): string {
   return `UMJ-${part1}-${part2}`;
 }
 
-export const revalidate = 60; // 60 seconds ISR cache
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,11 +41,7 @@ export async function GET(request: NextRequest) {
     const result = await sql.query(query, params);
     // sql.query returns { rows: [...] } in @neondatabase/serverless v1
     const rows = Array.isArray(result) ? result : (result as { rows: Record<string, unknown>[] }).rows || [];
-    return NextResponse.json({ success: true, data: rows }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
-      },
-    });
+    return NextResponse.json({ success: true, data: rows });
   } catch (error) {
     console.error('Customers GET error:', error);
     return NextResponse.json(

@@ -96,8 +96,7 @@ export default function ManageContent({ initialData }: { initialData?: Customer[
       const params = new URLSearchParams();
       if (activeStatus !== "전체") params.set("status", activeStatus);
       if (search) params.set("search", search);
-      // Removed _t for ISR caching to work properly on the API route
-      
+      params.set("_t", Date.now().toString());
       const res = await fetch(`/api/customers?${params}`);
       const result = await res.json();
       if (result.success) {
@@ -321,7 +320,7 @@ export default function ManageContent({ initialData }: { initialData?: Customer[
       color: (editData.color as string) || selectedCustomer.color,
       contract_period: (editData.contractPeriod as string) || selectedCustomer.contract_period,
       service_type: (editData.serviceType as string) || selectedCustomer.service_type,
-      monthly_fee: editData.monthlyFee ? Number(editData.monthlyFee) : selectedCustomer.monthly_fee,
+      monthly_fee: editData.monthlyFee ? Number(parseCurrency(String(editData.monthlyFee))) : selectedCustomer.monthly_fee,
       promotion: [...((editData.promotion as string[]) || []), ...((editData.customPromotion as string || "").trim() ? [(editData.customPromotion as string).trim()] : [])],
       desired_install_date: (editData.desiredInstallDate as string) || selectedCustomer.desired_install_date,
       memo: (editData.memo as string) || selectedCustomer.memo,
@@ -624,7 +623,7 @@ export default function ManageContent({ initialData }: { initialData?: Customer[
                     color: (editData.color as string) || selectedCustomer.color,
                     contract_period: (editData.contractPeriod as string) || selectedCustomer.contract_period,
                     service_type: (editData.serviceType as string) || selectedCustomer.service_type,
-                    monthly_fee: editData.monthlyFee ? Number(editData.monthlyFee) : selectedCustomer.monthly_fee,
+                    monthly_fee: editData.monthlyFee ? Number(parseCurrency(String(editData.monthlyFee))) : selectedCustomer.monthly_fee,
                     promotion: [...((editData.promotion as string[]) || []), ...((editData.customPromotion as string || "").trim() ? [(editData.customPromotion as string).trim()] : [])],
                     desired_install_date: (editData.desiredInstallDate as string) || selectedCustomer.desired_install_date,
                     memo: (editData.memo as string) || selectedCustomer.memo,
